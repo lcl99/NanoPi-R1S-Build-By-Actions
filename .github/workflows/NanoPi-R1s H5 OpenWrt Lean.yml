@@ -62,17 +62,27 @@ jobs:
           echo '# CONFIG_V2RAY_COMPRESS_UPX is not set' >> configs/config_h5
           sed -i '/docker/Id;/containerd/Id;/runc/Id;/iptparser/Id' configs/config_h5 #fix compile error
           cd friendlywrt
+          git config merge.renameLimit 999999
           git config --local user.email "action@github.com" && git config --local user.name "GitHub Action"
           git remote add upstream https://github.com/coolsnowwolf/lede && git fetch upstream
           git rebase 90bb1cf9c33e73de5019686b8bd495f689e675a4^ --onto upstream/master -X theirs
+          git revert --no-edit b65f1ebf0089a2fa0d3e1ad30efc21385a013139
+          git revert --no-edit 2c37fa71f93d150eb67bffdc5bdac8abf5354b16
+          git revert --no-edit 23378ed9a481dc73923f5bfa81637a1a8056882d
+          git revert --no-edit 4787dbaf3cad44b374b660cc0fef9386963e6795
+          git revert --no-edit 463b6ac0508de4788a6e41335471ced0a255e1cd
+          git revert --no-edit 8faac30089ce616940b3e96c4f4d900aeb6b9fcb
+          rm target/linux/allwinner-h5/patches-4.14/0001-net-thunderx-workaround-BGX-TX-Underflow-issue.patch
           git checkout upstream/master -- feeds.conf.default
+          sed -i '5s/#src-git/src-git/g' feeds.conf.default
           cd package/lean/
           rm -rf luci-theme-argon
           git clone -b 18.06 https://github.com/jerrykuku/luci-theme-argon.git
           cd ../../
-          sed -i '/exit/i\mv /etc/rc.d/S25dockerd /etc/rc.d/S92dockerd && sed -i "s/START=25/START=92/g" S92dockerd' package/lean/default-settings/files/zzz-default-settings
+          git apply ../../enable_autocore.diff
           sed -i '/uci commit luci/i\uci set luci.main.mediaurlbase="/luci-static/argon"' package/lean/default-settings/files/zzz-default-settings
           sed -i '/exit/i\chown -R root:root /usr/share/netdata/web' package/lean/default-settings/files/zzz-default-settings
+          sed -i '/exit/i\find /etc/rc.d/ -name *docker* -delete' package/lean/default-settings/files/zzz-default-settings
           sed -i 's/option fullcone\t1/option fullcone\t0/' package/network/config/firewall/files/firewall.config
           sed -i '/8.8.8.8/d' package/base-files/files/root/setup.sh
           echo -e '\nDYC Build\n'  >> package/base-files/files/etc/banner
@@ -89,6 +99,7 @@ jobs:
           cd friendlywrt-h5
           cp configs/config_h5 friendlywrt/.config
           cd friendlywrt
+          ./scripts/feeds update -a && ./scripts/feeds install -a
           make defconfig && make download -j8
           make -s -j$(nproc) || make V=s -j1
           
